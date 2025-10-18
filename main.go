@@ -64,6 +64,24 @@ type SymbolResponse struct {
 }
 
 // SymbolCache holds the cached symbol data with thread-safe access.
+//
+// Concurrency design notes:
+// - RWMutex allows multiple concurrent readers with exclusive writer access
+// - Slice headers are copied during reads, but underlying arrays are shared (intentional)
+// - This is safe because slices are never modified after creation (immutable pattern)
+// - Updates create entirely new slices rather than modifying existing ones
+// - JSON encoding happens after releasing the read lock, using the copied slice header
+//
+// Performance characteristics:
+// - Read operations are extremely fast (O(1) slice header copy)
+// - No memory allocation on reads (zero-copy for slice data)
+// - Write operations (every 2 minutes) briefly block readers during pointer swap
+//
+// Potential improvements if needed:
+// - For very high concurrency: implement deep copy on read (trades memory for isolation)
+// - For zero-lock reads: use atomic.Value for lock-free pointer swapping
+// - For large datasets: implement pagination to reduce response size
+// - Current design prioritizes simplicity and read performance for the expected load
 type SymbolCache struct {
 	mu          sync.RWMutex
 	allSymbols  []SymbolInfo
@@ -168,7 +186,9 @@ func updateSymbolCache(ctx context.Context) error {
 	// Match symbols
 	allCommon, usdtQuoted, usdcQuoted := matchSymbols(spotSymbols, futuresSymbols)
 
-	// Update cache with write lock
+	// Update cache with exclusive write lock
+	// Creates new slices entirely rather than modifying existing ones
+	// Brief lock duration ensures minimal impact on concurrent readers
 	cache.mu.Lock()
 	cache.allSymbols = allCommon
 	cache.usdtSymbols = usdtQuoted
@@ -253,6 +273,12 @@ func symbolUpdateWorker(ctx context.Context) {
 }
 
 // handleSymbols is the HTTP handler for symbol endpoints.
+//
+// Concurrency handling:
+// - Each request runs in its own goroutine (handled by http.Server)
+// - Cache reads use RLock allowing multiple concurrent readers
+// - Slice header copy happens under lock, JSON encoding after lock release
+// - This pattern is safe because we never modify slice contents after creation
 func handleSymbols(symbolType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
@@ -267,7 +293,9 @@ func handleSymbols(symbolType string) http.HandlerFunc {
 			return
 		}
 
-		// Read from cache
+		// Read from cache with shared lock (allows concurrent reads)
+		// We copy the slice header (24 bytes) but share the underlying array
+		// This is safe because slices are never modified after cache update
 		cache.mu.RLock()
 		var symbols []SymbolInfo
 		timestamp := cache.lastUpdate
