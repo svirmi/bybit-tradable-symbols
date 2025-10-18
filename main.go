@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -42,7 +43,6 @@ type Instrument struct {
 func fetchSymbols(category string, ch chan<- []string) {
 	var allSymbols []string
 	cursor := ""
-
 	client := &http.Client{
 		Timeout: requestTimeout,
 	}
@@ -104,7 +104,6 @@ func fetchSymbols(category string, ch chan<- []string) {
 		// Extract the symbol strings from the instrument list for the current page
 		for _, instrument := range apiResponse.Result.List {
 			// Ensure we only include instruments that are actively trading.
-			// Actually they are all 'trading' in API response. So here we just create their list
 			if instrument.Status == "Trading" {
 				allSymbols = append(allSymbols, instrument.Symbol)
 			}
@@ -121,25 +120,78 @@ func fetchSymbols(category string, ch chan<- []string) {
 	ch <- allSymbols
 }
 
-// mergeAndFilter finds the common symbols between two slices of strings.
-func mergeAndFilter(spotSymbols, futuresSymbols []string) []string {
-	// Use a map for efficient O(1) average time complexity lookups of future symbols.
-	futuresMap := make(map[string]struct{}, len(futuresSymbols))
-	for _, symbol := range futuresSymbols {
-		futuresMap[symbol] = struct{}{}
+// normalizeSymbol converts futures symbols to their spot equivalent for comparison.
+// BTCPERP -> BTCUSDC (USDC perpetuals)
+// BTCUSDT -> BTCUSDT (USDT perpetuals, unchanged)
+// This handles the special case where USDC perpetuals use PERP suffix instead of USDC.
+func normalizeSymbol(symbol string) string {
+	if strings.HasSuffix(symbol, "PERP") {
+		// Replace PERP suffix with USDC to match spot naming
+		// But we need to ensure it's not PERPUSDT or similar where PERP is the base currency
+		if len(symbol) > 4 {
+			baseCurrency := symbol[:len(symbol)-4]
+			// Additional check: make sure PERP is not part of the base currency name
+			// If the symbol is exactly "PERP" + something, we don't convert it
+			if baseCurrency != "PERP" && !strings.HasSuffix(baseCurrency, "PERP") {
+				return baseCurrency + "USDC"
+			}
+		}
+	}
+	return symbol
+}
+
+// MatchResult holds the results of symbol matching between spot and futures.
+type MatchResult struct {
+	AllCommon  []string // All common symbols (USDT + USDC quoted)
+	USDCQuoted []string // Only USDC-quoted symbols
+}
+
+// mergeAndFilter finds the common symbols between spot and futures markets.
+// It handles the special case where USDC perpetuals have PERP suffix in futures
+// but USDC suffix in spot markets.
+// Returns both all common symbols and specifically USDC-quoted symbols.
+func mergeAndFilter(spotSymbols, futuresSymbols []string) MatchResult {
+	// Create a map of spot symbols for O(1) lookup
+	spotMap := make(map[string]bool, len(spotSymbols))
+	for _, symbol := range spotSymbols {
+		spotMap[symbol] = true
 	}
 
-	// Iterate through spot symbols and check for existence in the futures map.
-	commonSymbols := make([]string, 0)
-	for _, symbol := range spotSymbols {
-		if _, exists := futuresMap[symbol]; exists {
-			commonSymbols = append(commonSymbols, symbol)
+	// Track which futures symbols match (store original futures symbol)
+	commonSymbolsMap := make(map[string]string) // normalized -> original futures symbol
+
+	for _, futuresSymbol := range futuresSymbols {
+		normalized := normalizeSymbol(futuresSymbol)
+
+		// Check if the normalized futures symbol exists in spot
+		if spotMap[normalized] {
+			// Store with normalized key to avoid duplicates
+			// The value is the original futures symbol for reference
+			commonSymbolsMap[normalized] = futuresSymbol
 		}
 	}
 
-	// Sort the final list for consistent and readable output.
+	// Extract the normalized symbols (which match spot symbols)
+	commonSymbols := make([]string, 0, len(commonSymbolsMap))
+	usdcQuoted := make([]string, 0)
+
+	for normalized := range commonSymbolsMap {
+		commonSymbols = append(commonSymbols, normalized)
+
+		// Check if this is a USDC-quoted pair
+		if strings.HasSuffix(normalized, "USDC") {
+			usdcQuoted = append(usdcQuoted, normalized)
+		}
+	}
+
+	// Sort both lists for consistent and readable output.
 	sort.Strings(commonSymbols)
-	return commonSymbols
+	sort.Strings(usdcQuoted)
+
+	return MatchResult{
+		AllCommon:  commonSymbols,
+		USDCQuoted: usdcQuoted,
+	}
 }
 
 func main() {
@@ -168,19 +220,30 @@ func main() {
 	}
 
 	// Process the results to find the common symbols.
-	commonSymbols := mergeAndFilter(spotSymbols, futuresSymbols)
+	result := mergeAndFilter(spotSymbols, futuresSymbols)
 
 	// Print the final result.
-	fmt.Printf("\nFound %d symbols present in BOTH Spot and Futures markets:\n\n", len(commonSymbols))
+	fmt.Printf("\nFound %d symbols present in BOTH Spot and Futures markets:\n\n", len(result.AllCommon))
 
 	// Print in columns for better readability
 	const columns = 5
-	for i, symbol := range commonSymbols {
+	for i, symbol := range result.AllCommon {
+		fmt.Printf("%-15s", symbol)
+		if (i+1)%columns == 0 {
+			fmt.Println()
+		}
+	}
+	fmt.Println()
+
+	// Print USDC-quoted pairs separately
+	fmt.Println("\n--------------------------------------------------")
+	fmt.Printf("\nFound %d USDC-quoted symbols (matched via PERP suffix):\n\n", len(result.USDCQuoted))
+
+	for i, symbol := range result.USDCQuoted {
 		fmt.Printf("%-15s", symbol)
 		if (i+1)%columns == 0 {
 			fmt.Println()
 		}
 	}
 	fmt.Println() // Newline for clean exit
-
 }
