@@ -2,6 +2,8 @@
 ./logs/*
 *.log
 logs
+logs/
+/logs
 llm.txt
 bybit-tradable-symbols
 
