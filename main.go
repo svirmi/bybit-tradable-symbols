@@ -16,6 +16,7 @@ import (
 )
 
 // Constants for the Bybit API and server configuration
+// https://api.bybit.com/v5/market/instruments-info?category=option !!!
 const (
 	bybitAPIEndpoint = "https://api.bybit.com/v5/market/instruments-info"
 	requestTimeout   = 10 * time.Second
@@ -142,20 +143,20 @@ func fetchSymbols(ctx context.Context, category string) ([]SymbolInfo, error) {
 		}
 
 		for _, instrument := range apiResponse.Result.List {
-			if instrument.Status == "Trading" {
-				displayName := instrument.DisplayName
-				if displayName == "" {
-					displayName = instrument.Symbol
-				}
 
-				allSymbols = append(allSymbols, SymbolInfo{
-					Symbol:      instrument.Symbol,
-					DisplayName: displayName,
-					BaseCoin:    instrument.BaseCoin,
-					QuoteCoin:   instrument.QuoteCoin,
-					SettleCoin:  instrument.SettleCoin,
-				})
+			displayName := instrument.DisplayName
+			if displayName == "" {
+				displayName = instrument.Symbol
 			}
+
+			allSymbols = append(allSymbols, SymbolInfo{
+				Symbol:      instrument.Symbol,
+				DisplayName: displayName,
+				BaseCoin:    instrument.BaseCoin,
+				QuoteCoin:   instrument.QuoteCoin,
+				SettleCoin:  instrument.SettleCoin,
+			})
+
 		}
 
 		if apiResponse.Result.NextPageCursor == "" {
