@@ -1,0 +1,238 @@
+{"time":"2025-10-19T13:57:51.475625912+03:00","level":"INFO","msg":"Starting Bybit Symbol REST Server","port":"8080"}
+{"time":"2025-10-19T13:57:51.475957543+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T13:57:51.47661724+03:00","level":"INFO","msg":"Server listening","addr":":8080"}
+{"time":"2025-10-19T13:57:52.036760563+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T13:57:52.458658957+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T13:57:52.459239851+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T13:59:52.460161762+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T13:59:53.349614549+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T13:59:53.82912253+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T13:59:53.829729313+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:01:52.493927676+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:01:53.020102732+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:01:53.529026722+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:01:53.530029704+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:03:52.488176651+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:03:52.959632219+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:03:53.427491831+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:03:53.429040264+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:05:52.461856997+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:05:52.931136424+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:05:53.398233172+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:05:53.399823057+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:07:52.497442364+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:07:53.333900288+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:07:53.767884735+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:07:53.76956273+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:09:52.460313024+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:09:52.838592869+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:09:53.156320659+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:09:53.15711905+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:11:52.495081761+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:11:53.555958911+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:11:53.995201673+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:11:53.996436617+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:13:52.493329911+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:13:52.970869468+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:13:53.356277059+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:13:53.357228971+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:15:52.485449413+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:15:52.986576315+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:15:53.506150677+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:15:53.508052916+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:17:52.505629884+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:17:52.913448707+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:17:53.917995548+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:17:53.919832626+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:19:52.499790703+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:19:53.319840698+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:19:53.785890381+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:19:53.787366604+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:21:52.497830743+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:21:53.612107009+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:21:54.06157052+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:21:54.064298563+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:23:52.46534523+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:23:52.833673808+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:23:54.373490226+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:23:54.375169511+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:25:52.486785836+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:25:52.856926599+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:25:53.139811603+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:25:53.141381474+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:27:52.49534164+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:27:52.88378089+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:27:53.413935132+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:27:53.416444147+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:29:52.501616036+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:29:53.171614745+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:29:53.807986688+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:29:53.809401064+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:31:52.484367736+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:31:53.020977839+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:31:53.437152328+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:31:53.438558826+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:33:52.494208476+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:33:52.990780623+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:33:53.337933037+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:33:53.339180588+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:35:52.490481736+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:35:53.460460641+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:35:53.978434603+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:35:53.979478984+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:37:52.486030584+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:37:52.842358855+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:37:53.254474498+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:37:53.255399644+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:39:52.476890502+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:39:52.859316881+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:39:53.259962539+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:39:53.260528012+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:41:52.463854076+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:41:52.876502079+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:41:53.338161779+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:41:53.338610175+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:43:52.494395437+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:43:52.888967395+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:43:53.312204025+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:43:53.312677516+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:45:52.500227917+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:45:53.007359383+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:45:53.428180278+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:45:53.428664275+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:47:52.468966044+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:47:53.043757374+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:47:54.043430173+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:47:54.043944154+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:49:52.461328657+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:49:52.899647852+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:49:53.314838136+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:49:53.315791628+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:51:52.459708229+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:51:52.919553061+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:51:54.088275717+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:51:54.089245984+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:53:52.464377229+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:53:52.939520335+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:53:53.778163828+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:53:53.778933625+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:55:52.48611609+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:55:52.97779515+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:55:53.405759767+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:55:53.406936354+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:57:52.527254048+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:57:52.867114161+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:57:53.286371507+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:57:53.287507316+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T14:59:52.484374128+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T14:59:53.348175142+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T14:59:54.409538415+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T14:59:54.409872659+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:01:52.479888886+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:01:52.960892205+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:01:54.046464192+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:01:54.047134265+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:03:52.500332074+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:03:52.836574883+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:03:53.149521866+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:03:53.15091391+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:05:52.473515072+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:05:53.359368384+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:05:53.948988017+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:05:53.950089359+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:07:52.494204346+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:07:52.982403423+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:07:53.492471053+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:07:53.492883727+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:09:52.4859218+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:09:52.983553262+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:09:53.288559755+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:09:53.289115774+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:11:52.473189931+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:11:53.005640968+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:11:53.625282563+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:11:53.625735302+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:13:52.489177019+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:13:52.838122067+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:13:53.100912533+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:13:53.10131864+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:15:52.485698516+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:15:52.894366245+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:15:53.728706061+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:15:53.729594105+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:17:52.46458168+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:17:52.999990712+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:17:53.925333557+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:17:53.926411879+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:19:52.486109062+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:19:52.855432701+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:19:53.167266944+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:19:53.168094366+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:21:52.47217597+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:21:53.354009715+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:21:54.35860518+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:21:54.359139851+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:23:52.549540188+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:23:53.978072703+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:23:54.443025106+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:23:54.445805154+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:25:52.474457892+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:25:53.020729365+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:25:54.5709707+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:25:54.571350681+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:27:52.475932707+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:27:52.980421161+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:27:53.427455433+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:27:53.428321244+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:29:52.484476884+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:29:53.036520986+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:29:53.498895366+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:29:53.500143842+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:31:52.518012035+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:31:53.33917697+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:31:54.065573013+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:31:54.066399314+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:33:52.519269253+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:33:53.557758926+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:33:54.697354553+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:33:54.699518856+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:35:52.486191305+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:35:52.967988416+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:35:53.39175929+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:35:53.392260911+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:37:52.487822781+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:37:52.995489477+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:37:53.697592817+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:37:53.699336108+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:39:52.465528087+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:39:53.314030203+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:39:54.143093871+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:39:54.143695068+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:41:52.460786125+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:41:52.805498533+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:41:53.18730136+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:41:53.188150377+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:43:52.46547764+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:43:52.945231217+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:43:53.401469254+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:43:53.402498565+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:45:52.496049016+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:45:53.151474845+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:45:53.846155146+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:45:53.848187466+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:47:52.598131583+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:47:53.160447353+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:47:53.546524318+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:47:53.546903389+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:49:52.463376564+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:49:52.989303338+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:49:53.893181988+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:49:53.89451937+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:51:52.18118184+03:00","level":"INFO","msg":"Shutting down server..."}
+{"time":"2025-10-19T15:53:53.38701927+03:00","level":"INFO","msg":"Starting Bybit Symbol REST Server","port":"8080"}
+{"time":"2025-10-19T15:53:53.387258697+03:00","level":"INFO","msg":"Server listening","addr":":8080"}
+{"time":"2025-10-19T15:53:53.387561333+03:00","level":"INFO","msg":"Starting symbol cache update"}
+{"time":"2025-10-19T15:53:53.945472489+03:00","level":"INFO","msg":"Fetched spot symbols","count":683}
+{"time":"2025-10-19T15:53:54.436033956+03:00","level":"INFO","msg":"Fetched futures symbols","count":653}
+{"time":"2025-10-19T15:53:54.436680377+03:00","level":"INFO","msg":"Cache updated successfully","total":358,"usdt":321,"usdc":37}
+{"time":"2025-10-19T15:54:34.271963871+03:00","level":"INFO","msg":"Shutting down server..."}

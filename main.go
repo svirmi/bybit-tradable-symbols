@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sort"
 	"sync"
 	"syscall"
@@ -22,6 +23,8 @@ const (
 	requestTimeout   = 10 * time.Second
 	updateInterval   = 2 * time.Minute
 	serverPort       = "8080"
+	logsDir          = "./logs"
+	logRetentionDays = 7
 )
 
 // BybitResponse defines the structure for the top-level API response.
@@ -92,8 +95,11 @@ type SymbolCache struct {
 }
 
 var (
-	cache  = &SymbolCache{}
-	logger *slog.Logger
+	cache        = &SymbolCache{}
+	logger       *slog.Logger
+	logFile      *os.File
+	logCloser    = make(chan struct{})
+	logCloseOnce sync.Once
 )
 
 // fetchSymbols retrieves all tradable symbols for a given market category.
@@ -380,12 +386,168 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(health)
 }
 
-func main() {
-	// Initialize structured logger
-	logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+// setupLogging configures logging to both console and daily rotating files.
+// Returns a cleanup function that should be called on shutdown.
+func setupLogging() (func(), error) {
+	// Create logs directory if it doesn't exist
+	if err := os.MkdirAll(logsDir, 0755); err != nil {
+		return nil, fmt.Errorf("creating logs directory: %w", err)
+	}
+
+	// Create log file with current date
+	logFileName := filepath.Join(logsDir, fmt.Sprintf("server-%s.log", time.Now().Format("2006-01-02")))
+	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("opening log file: %w", err)
+	}
+	logFile = file
+
+	// Create multi-writer for both console and file
+	multiWriter := io.MultiWriter(os.Stdout, file)
+
+	// Create logger with multi-writer
+	logger = slog.New(slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
 	}))
 	slog.SetDefault(logger)
+
+	// Start background worker for log rotation and cleanup
+	go logRotationWorker()
+
+	// Return cleanup function
+	cleanup := func() {
+		logCloseOnce.Do(func() {
+			close(logCloser)
+			if logFile != nil {
+				logFile.Close()
+			}
+		})
+	}
+
+	return cleanup, nil
+}
+
+// logRotationWorker handles daily log rotation and cleanup of old logs.
+// Runs in the background and is non-blocking.
+func logRotationWorker() {
+	// Calculate time until midnight for first rotation
+	now := time.Now()
+	tomorrow := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, now.Location())
+	timeUntilMidnight := tomorrow.Sub(now)
+
+	// Wait until midnight for first rotation
+	timer := time.NewTimer(timeUntilMidnight)
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-logCloser:
+			return
+		case <-timer.C:
+			// Rotate log file
+			if err := rotateLogs(); err != nil {
+				// Log to current file if rotation fails
+				if logger != nil {
+					logger.Error("Failed to rotate logs", "error", err)
+				}
+			}
+
+			// Clean up old log files
+			if err := cleanupOldLogs(); err != nil {
+				if logger != nil {
+					logger.Error("Failed to cleanup old logs", "error", err)
+				}
+			}
+
+			// Reset timer for next midnight (24 hours)
+			timer.Reset(24 * time.Hour)
+		}
+	}
+}
+
+// rotateLogs creates a new log file for the current day.
+func rotateLogs() error {
+	// Create new log file with current date
+	logFileName := filepath.Join(logsDir, fmt.Sprintf("server-%s.log", time.Now().Format("2006-01-02")))
+	newFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return fmt.Errorf("creating new log file: %w", err)
+	}
+
+	// Close old file
+	if logFile != nil {
+		logFile.Close()
+	}
+
+	// Update global file reference
+	logFile = newFile
+
+	// Update logger with new multi-writer
+	multiWriter := io.MultiWriter(os.Stdout, newFile)
+	logger = slog.New(slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	slog.SetDefault(logger)
+
+	logger.Info("Log file rotated", "file", logFileName)
+	return nil
+}
+
+// cleanupOldLogs removes log files older than the retention period.
+func cleanupOldLogs() error {
+	entries, err := os.ReadDir(logsDir)
+	if err != nil {
+		return fmt.Errorf("reading logs directory: %w", err)
+	}
+
+	cutoffDate := time.Now().AddDate(0, 0, -logRetentionDays)
+	deletedCount := 0
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		hasFile, err := filepath.Match("server-*.log", entry.Name())
+
+		// Only process files matching our log pattern
+		if err != nil || !hasFile {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			logger.Warn("Failed to get file info", "file", entry.Name(), "error", err)
+			continue
+		}
+
+		// Delete if older than retention period
+		if info.ModTime().Before(cutoffDate) {
+			filePath := filepath.Join(logsDir, entry.Name())
+			if err := os.Remove(filePath); err != nil {
+				logger.Warn("Failed to delete old log file", "file", entry.Name(), "error", err)
+			} else {
+				deletedCount++
+				logger.Info("Deleted old log file", "file", entry.Name())
+			}
+		}
+	}
+
+	if deletedCount > 0 {
+		logger.Info("Log cleanup completed", "deleted", deletedCount)
+	}
+
+	return nil
+}
+
+func main() {
+	// Initialize logging to both console and file
+	cleanupLogs, err := setupLogging()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to setup logging: %v\n", err)
+		os.Exit(1)
+	}
+	defer cleanupLogs()
 
 	logger.Info("Starting Bybit Symbol REST Server", "port", serverPort)
 
@@ -427,6 +589,9 @@ func main() {
 	<-sigChan
 
 	logger.Info("Shutting down server...")
+
+	// Stop log rotation worker
+	cleanupLogs()
 
 	// Cancel background worker
 	cancel()
