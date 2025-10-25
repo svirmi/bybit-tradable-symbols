@@ -17,15 +17,22 @@ import (
 )
 
 // Constants for the Bybit API and server configuration
-// https://api.bybit.com/v5/market/instruments-info?category=option !!!
 const (
-	bybitAPIEndpoint = "https://api.bybit.com/v5/market/instruments-info"
-	requestTimeout   = 10 * time.Second
-	updateInterval   = 2 * time.Minute
-	serverPort       = "8080"
-	logsDir          = "./logs"
-	logRetentionDays = 7
+	bybitAPIEndpoint      = "https://api.bybit.com/v5/market/instruments-info"
+	requestTimeout        = 10 * time.Second
+	updateInterval        = 2 * time.Minute
+	optionsUpdateInterval = 30 * time.Second
+	serverPort            = "8080"
+	logsDir               = "./logs"
+	logRetentionDays      = 7
+
+	// Options expiry window: 8-72 hours for optimal liquidity and reaction time
+	minExpiryHours = 8
+	maxExpiryHours = 72
 )
+
+// Supported base coins for options trading on Bybit
+var optionBaseCoins = []string{"BTC", "ETH", "SOL", "XRP", "DOGE", "MNT"}
 
 // BybitResponse defines the structure for the top-level API response.
 type BybitResponse struct {
@@ -43,12 +50,13 @@ type Result struct {
 
 // Instrument represents a single symbol's data with all relevant fields.
 type Instrument struct {
-	Symbol      string `json:"symbol"`
-	Status      string `json:"status"`
-	DisplayName string `json:"displayName"`
-	SettleCoin  string `json:"settleCoin"`
-	BaseCoin    string `json:"baseCoin"`
-	QuoteCoin   string `json:"quoteCoin"`
+	Symbol       string `json:"symbol"`
+	Status       string `json:"status"`
+	DisplayName  string `json:"displayName"`
+	SettleCoin   string `json:"settleCoin"`
+	BaseCoin     string `json:"baseCoin"`
+	QuoteCoin    string `json:"quoteCoin"`
+	DeliveryTime string `json:"deliveryTime"` // For options expiry (unix timestamp in ms)
 }
 
 // SymbolInfo holds processed information about a symbol.
@@ -58,6 +66,7 @@ type SymbolInfo struct {
 	BaseCoin    string `json:"baseCoin"`
 	QuoteCoin   string `json:"quoteCoin"`
 	SettleCoin  string `json:"settleCoin"`
+	ExpiryDate  string `json:"expiryDate,omitempty"` // ISO 8601 format, only for options
 }
 
 // SymbolResponse is the JSON response structure for the API.
@@ -68,24 +77,6 @@ type SymbolResponse struct {
 }
 
 // SymbolCache holds the cached symbol data with thread-safe access.
-//
-// Concurrency design notes:
-// - RWMutex allows multiple concurrent readers with exclusive writer access
-// - Slice headers are copied during reads, but underlying arrays are shared (intentional)
-// - This is safe because slices are never modified after creation (immutable pattern)
-// - Updates create entirely new slices rather than modifying existing ones
-// - JSON encoding happens after releasing the read lock, using the copied slice header
-//
-// Performance characteristics:
-// - Read operations are extremely fast (O(1) slice header copy)
-// - No memory allocation on reads (zero-copy for slice data)
-// - Write operations (every 2 minutes) briefly block readers during pointer swap
-//
-// Potential improvements if needed:
-// - For very high concurrency: implement deep copy on read (trades memory for isolation)
-// - For zero-lock reads: use atomic.Value for lock-free pointer swapping
-// - For large datasets: implement pagination to reduce response size
-// - Current design prioritizes simplicity and read performance for the expected load
 type SymbolCache struct {
 	mu          sync.RWMutex
 	allSymbols  []SymbolInfo
@@ -94,8 +85,17 @@ type SymbolCache struct {
 	lastUpdate  time.Time
 }
 
+// OptionsCache holds the cached options data with thread-safe access.
+type OptionsCache struct {
+	mu            sync.RWMutex
+	allOptions    []SymbolInfo
+	optionsByBase map[string][]SymbolInfo // Key: base coin (BTC, ETH, etc.)
+	lastUpdate    time.Time
+}
+
 var (
 	cache        = &SymbolCache{}
+	optionsCache = &OptionsCache{optionsByBase: make(map[string][]SymbolInfo)}
 	logger       *slog.Logger
 	logFile      *os.File
 	logCloser    = make(chan struct{})
@@ -149,7 +149,6 @@ func fetchSymbols(ctx context.Context, category string) ([]SymbolInfo, error) {
 		}
 
 		for _, instrument := range apiResponse.Result.List {
-
 			displayName := instrument.DisplayName
 			if displayName == "" {
 				displayName = instrument.Symbol
@@ -162,7 +161,6 @@ func fetchSymbols(ctx context.Context, category string) ([]SymbolInfo, error) {
 				QuoteCoin:   instrument.QuoteCoin,
 				SettleCoin:  instrument.SettleCoin,
 			})
-
 		}
 
 		if apiResponse.Result.NextPageCursor == "" {
@@ -172,6 +170,98 @@ func fetchSymbols(ctx context.Context, category string) ([]SymbolInfo, error) {
 	}
 
 	return allSymbols, nil
+}
+
+// fetchOptions retrieves options for a specific base coin, filtered by expiry window.
+func fetchOptions(ctx context.Context, baseCoin string) ([]SymbolInfo, error) {
+	var allOptions []SymbolInfo
+	cursor := ""
+	client := &http.Client{
+		Timeout: requestTimeout,
+	}
+
+	now := time.Now()
+	minExpiry := now.Add(time.Duration(minExpiryHours) * time.Hour)
+	maxExpiry := now.Add(time.Duration(maxExpiryHours) * time.Hour)
+
+	for {
+		url := fmt.Sprintf("%s?category=option&baseCoin=%s&limit=1000", bybitAPIEndpoint, baseCoin)
+		if cursor != "" {
+			url = fmt.Sprintf("%s&cursor=%s", url, cursor)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("creating request for %s options: %w", baseCoin, err)
+		}
+
+		req.Header.Set("Accept", "application/json")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("fetching %s options: %w", baseCoin, err)
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			resp.Body.Close()
+			return nil, fmt.Errorf("API returned status %s for %s options", resp.Status, baseCoin)
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("reading response body for %s options: %w", baseCoin, err)
+		}
+
+		var apiResponse BybitResponse
+		if err := json.Unmarshal(body, &apiResponse); err != nil {
+			return nil, fmt.Errorf("decoding JSON for %s options: %w", baseCoin, err)
+		}
+
+		if apiResponse.RetCode != 0 {
+			return nil, fmt.Errorf("API error for %s options: %s", baseCoin, apiResponse.RetMsg)
+		}
+
+		for _, instrument := range apiResponse.Result.List {
+			// Parse expiry time from deliveryTime field (unix timestamp in milliseconds)
+			if instrument.DeliveryTime == "" || instrument.DeliveryTime == "0" {
+				continue
+			}
+
+			// Parse unix milliseconds
+			var expiryMs int64
+			if _, err := fmt.Sscanf(instrument.DeliveryTime, "%d", &expiryMs); err != nil {
+				continue
+			}
+			deliveryTimeMs := time.UnixMilli(expiryMs)
+
+			// Filter by expiry window (8-72 hours)
+			if deliveryTimeMs.Before(minExpiry) || deliveryTimeMs.After(maxExpiry) {
+				continue
+			}
+
+			displayName := instrument.DisplayName
+			if displayName == "" {
+				displayName = instrument.Symbol
+			}
+
+			allOptions = append(allOptions, SymbolInfo{
+				Symbol:      instrument.Symbol,
+				DisplayName: displayName,
+				BaseCoin:    instrument.BaseCoin,
+				QuoteCoin:   instrument.QuoteCoin,
+				SettleCoin:  instrument.SettleCoin,
+				ExpiryDate:  deliveryTimeMs.Format(time.RFC3339),
+			})
+		}
+
+		if apiResponse.Result.NextPageCursor == "" {
+			break
+		}
+		cursor = apiResponse.Result.NextPageCursor
+	}
+
+	return allOptions, nil
 }
 
 // updateSymbolCache fetches data from Bybit and updates the cache.
@@ -194,8 +284,6 @@ func updateSymbolCache(ctx context.Context) error {
 	allCommon, usdtQuoted, usdcQuoted := matchSymbols(spotSymbols, futuresSymbols)
 
 	// Update cache with exclusive write lock
-	// Creates new slices entirely rather than modifying existing ones
-	// Brief lock duration ensures minimal impact on concurrent readers
 	cache.mu.Lock()
 	cache.allSymbols = allCommon
 	cache.usdtSymbols = usdtQuoted
@@ -208,6 +296,43 @@ func updateSymbolCache(ctx context.Context) error {
 		"usdt", len(usdtQuoted),
 		"usdc", len(usdcQuoted))
 
+	return nil
+}
+
+// updateOptionsCache fetches options data from Bybit and updates the cache.
+func updateOptionsCache(ctx context.Context) error {
+	logger.Info("Starting options cache update")
+
+	allOptions := make([]SymbolInfo, 0)
+	optionsByBase := make(map[string][]SymbolInfo)
+
+	// Fetch options for each supported base coin
+	for _, baseCoin := range optionBaseCoins {
+		options, err := fetchOptions(ctx, baseCoin)
+		if err != nil {
+			logger.Error("Failed to fetch options", "baseCoin", baseCoin, "error", err)
+			continue // Continue with other base coins even if one fails
+		}
+
+		logger.Info("Fetched options", "baseCoin", baseCoin, "count", len(options))
+
+		allOptions = append(allOptions, options...)
+		optionsByBase[baseCoin] = options
+	}
+
+	// Sort all options by expiry date
+	sort.Slice(allOptions, func(i, j int) bool {
+		return allOptions[i].ExpiryDate < allOptions[j].ExpiryDate
+	})
+
+	// Update cache
+	optionsCache.mu.Lock()
+	optionsCache.allOptions = allOptions
+	optionsCache.optionsByBase = optionsByBase
+	optionsCache.lastUpdate = time.Now()
+	optionsCache.mu.Unlock()
+
+	logger.Info("Options cache updated successfully", "total", len(allOptions))
 	return nil
 }
 
@@ -279,13 +404,30 @@ func symbolUpdateWorker(ctx context.Context) {
 	}
 }
 
+// optionsUpdateWorker runs in the background and updates options cache more frequently.
+func optionsUpdateWorker(ctx context.Context) {
+	// Initial update
+	if err := updateOptionsCache(ctx); err != nil {
+		logger.Error("Initial options cache update failed", "error", err)
+	}
+
+	ticker := time.NewTicker(optionsUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Options update worker stopping")
+			return
+		case <-ticker.C:
+			if err := updateOptionsCache(ctx); err != nil {
+				logger.Error("Options cache update failed", "error", err)
+			}
+		}
+	}
+}
+
 // handleSymbols is the HTTP handler for symbol endpoints.
-//
-// Concurrency handling:
-// - Each request runs in its own goroutine (handled by http.Server)
-// - Cache reads use RLock allowing multiple concurrent readers
-// - Slice header copy happens under lock, JSON encoding after lock release
-// - This pattern is safe because we never modify slice contents after creation
 func handleSymbols(symbolType string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
@@ -300,9 +442,7 @@ func handleSymbols(symbolType string) http.HandlerFunc {
 			return
 		}
 
-		// Read from cache with shared lock (allows concurrent reads)
-		// We copy the slice header (24 bytes) but share the underlying array
-		// This is safe because slices are never modified after cache update
+		// Read from cache with shared lock
 		cache.mu.RLock()
 		var symbols []SymbolInfo
 		timestamp := cache.lastUpdate
@@ -322,7 +462,7 @@ func handleSymbols(symbolType string) http.HandlerFunc {
 		}
 		cache.mu.RUnlock()
 
-		// Check if cache is empty (no data yet)
+		// Check if cache is empty
 		if timestamp.IsZero() {
 			logger.Warn("Cache not initialized yet",
 				"path", r.URL.Path,
@@ -355,6 +495,66 @@ func handleSymbols(symbolType string) http.HandlerFunc {
 	}
 }
 
+// handleOptions is the HTTP handler for options endpoints.
+func handleOptions(baseCoin string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		startTime := time.Now()
+
+		// Only allow GET requests
+		if r.Method != http.MethodGet {
+			logger.Warn("Method not allowed",
+				"method", r.Method,
+				"path", r.URL.Path,
+				"remote", r.RemoteAddr)
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		// Read from options cache
+		optionsCache.mu.RLock()
+		var options []SymbolInfo
+		timestamp := optionsCache.lastUpdate
+
+		if baseCoin == "all" {
+			options = optionsCache.allOptions
+		} else {
+			options = optionsCache.optionsByBase[baseCoin]
+		}
+		optionsCache.mu.RUnlock()
+
+		// Check if cache is empty
+		if timestamp.IsZero() {
+			logger.Warn("Options cache not initialized yet",
+				"path", r.URL.Path,
+				"remote", r.RemoteAddr)
+			http.Error(w, "Data not available yet, please retry in a moment", http.StatusServiceUnavailable)
+			return
+		}
+
+		response := SymbolResponse{
+			Timestamp: timestamp.Format(time.RFC3339),
+			Count:     len(options),
+			Symbols:   options,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			logger.Error("Failed to encode response",
+				"error", err,
+				"path", r.URL.Path,
+				"remote", r.RemoteAddr)
+			return
+		}
+
+		logger.Info("Options request served",
+			"path", r.URL.Path,
+			"baseCoin", baseCoin,
+			"count", len(options),
+			"duration", time.Since(startTime),
+			"remote", r.RemoteAddr)
+	}
+}
+
 // healthHandler provides a health check endpoint.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	cache.mu.RLock()
@@ -362,14 +562,22 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	symbolCount := len(cache.allSymbols)
 	cache.mu.RUnlock()
 
+	optionsCache.mu.RLock()
+	optionsLastUpdate := optionsCache.lastUpdate
+	optionsCount := len(optionsCache.allOptions)
+	optionsCache.mu.RUnlock()
+
 	status := "healthy"
 	statusCode := http.StatusOK
 
-	if lastUpdate.IsZero() {
+	if lastUpdate.IsZero() || optionsLastUpdate.IsZero() {
 		status = "initializing"
 		statusCode = http.StatusServiceUnavailable
 	} else if time.Since(lastUpdate) > updateInterval*2 {
 		status = "stale"
+		statusCode = http.StatusServiceUnavailable
+	} else if time.Since(optionsLastUpdate) > optionsUpdateInterval*2 {
+		status = "options_stale"
 		statusCode = http.StatusServiceUnavailable
 	}
 
@@ -377,17 +585,19 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(statusCode)
 
 	health := map[string]interface{}{
-		"status":      status,
-		"lastUpdate":  lastUpdate.Format(time.RFC3339),
-		"symbolCount": symbolCount,
-		"cacheAge":    time.Since(lastUpdate).String(),
+		"status":            status,
+		"lastUpdate":        lastUpdate.Format(time.RFC3339),
+		"symbolCount":       symbolCount,
+		"cacheAge":          time.Since(lastUpdate).String(),
+		"optionsLastUpdate": optionsLastUpdate.Format(time.RFC3339),
+		"optionsCount":      optionsCount,
+		"optionsCacheAge":   time.Since(optionsLastUpdate).String(),
 	}
 
 	json.NewEncoder(w).Encode(health)
 }
 
 // setupLogging configures logging to both console and daily rotating files.
-// Returns a cleanup function that should be called on shutdown.
 func setupLogging() (func(), error) {
 	// Create logs directory if it doesn't exist
 	if err := os.MkdirAll(logsDir, 0755); err != nil {
@@ -428,7 +638,6 @@ func setupLogging() (func(), error) {
 }
 
 // logRotationWorker handles daily log rotation and cleanup of old logs.
-// Runs in the background and is non-blocking.
 func logRotationWorker() {
 	// Calculate time until midnight for first rotation
 	now := time.Now()
@@ -446,7 +655,6 @@ func logRotationWorker() {
 		case <-timer.C:
 			// Rotate log file
 			if err := rotateLogs(); err != nil {
-				// Log to current file if rotation fails
 				if logger != nil {
 					logger.Error("Failed to rotate logs", "error", err)
 				}
@@ -508,10 +716,9 @@ func cleanupOldLogs() error {
 			continue
 		}
 
-		hasFile, err := filepath.Match("server-*.log", entry.Name())
-
 		// Only process files matching our log pattern
-		if err != nil || !hasFile {
+		matched, err := filepath.Match("server-*.log", entry.Name())
+		if err != nil || !matched {
 			continue
 		}
 
@@ -558,11 +765,27 @@ func main() {
 	// Start background worker to update symbols
 	go symbolUpdateWorker(ctx)
 
+	// Start background worker to update options (faster interval)
+	go optionsUpdateWorker(ctx)
+
 	// Set up HTTP routes
 	mux := http.NewServeMux()
+
+	// Spot/Futures endpoints
 	mux.HandleFunc("/symbols/all", handleSymbols("all"))
 	mux.HandleFunc("/symbols/usdt", handleSymbols("usdt"))
 	mux.HandleFunc("/symbols/usdc", handleSymbols("usdc"))
+
+	// Options endpoints
+	mux.HandleFunc("/options/all", handleOptions("all"))
+	mux.HandleFunc("/options/btc", handleOptions("BTC"))
+	mux.HandleFunc("/options/eth", handleOptions("ETH"))
+	mux.HandleFunc("/options/sol", handleOptions("SOL"))
+	mux.HandleFunc("/options/xrp", handleOptions("XRP"))
+	mux.HandleFunc("/options/doge", handleOptions("DOGE"))
+	mux.HandleFunc("/options/mnt", handleOptions("MNT"))
+
+	// Health check
 	mux.HandleFunc("/health", healthHandler)
 
 	// Create server
@@ -590,10 +813,7 @@ func main() {
 
 	logger.Info("Shutting down server...")
 
-	// Stop log rotation worker
-	cleanupLogs()
-
-	// Cancel background worker
+	// Cancel background workers
 	cancel()
 
 	// Graceful shutdown with timeout
