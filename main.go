@@ -66,7 +66,9 @@ type SymbolInfo struct {
 	BaseCoin    string `json:"baseCoin"`
 	QuoteCoin   string `json:"quoteCoin"`
 	SettleCoin  string `json:"settleCoin"`
-	ExpiryDate  string `json:"expiryDate,omitempty"` // ISO 8601 format, only for options
+	ExpiryDate  string `json:"expiryDate,omitempty"`  // ISO 8601 format, only for options
+	StrikePrice string `json:"strikePrice,omitempty"` // Strike price, only for options
+	OptionType  string `json:"optionType,omitempty"`  // "Call" or "Put", only for options
 }
 
 // SymbolResponse is the JSON response structure for the API.
@@ -245,6 +247,18 @@ func fetchOptions(ctx context.Context, baseCoin string) ([]SymbolInfo, error) {
 				displayName = instrument.Symbol
 			}
 
+			// Parse strike price and option type from symbol
+			// Format: BTC-25OCT25-67000-C or ETH-25OCT25-3500-P
+			strikePrice, optionType := parseOptionSymbol(instrument.Symbol)
+
+			// Debug log if parsing failed
+			if strikePrice == "" || optionType == "" {
+				logger.Debug("Failed to parse option symbol",
+					"symbol", instrument.Symbol,
+					"strikePrice", strikePrice,
+					"optionType", optionType)
+			}
+
 			allOptions = append(allOptions, SymbolInfo{
 				Symbol:      instrument.Symbol,
 				DisplayName: displayName,
@@ -252,6 +266,8 @@ func fetchOptions(ctx context.Context, baseCoin string) ([]SymbolInfo, error) {
 				QuoteCoin:   instrument.QuoteCoin,
 				SettleCoin:  instrument.SettleCoin,
 				ExpiryDate:  deliveryTimeMs.Format(time.RFC3339),
+				StrikePrice: strikePrice,
+				OptionType:  optionType,
 			})
 		}
 
@@ -262,6 +278,49 @@ func fetchOptions(ctx context.Context, baseCoin string) ([]SymbolInfo, error) {
 	}
 
 	return allOptions, nil
+}
+
+// parseOptionSymbol extracts strike price and option type from option symbol.
+// Symbol formats:
+//   - BTC-25OCT25-67000-C (4 parts)
+//   - XRP-27OCT25-2.15-C-USDT (5 parts with settlement coin)
+//
+// Returns: strikePrice, optionType ("Call" or "Put")
+func parseOptionSymbol(symbol string) (string, string) {
+	// Split by dash
+	parts := make([]string, 0, 5)
+	lastIdx := 0
+	for i := 0; i < len(symbol); i++ {
+		if symbol[i] == '-' {
+			parts = append(parts, symbol[lastIdx:i])
+			lastIdx = i + 1
+		}
+	}
+	if lastIdx < len(symbol) {
+		parts = append(parts, symbol[lastIdx:])
+	}
+
+	// Handle both formats:
+	// 4 parts: [BASE, DATE, STRIKE, TYPE]
+	// 5 parts: [BASE, DATE, STRIKE, TYPE, SETTLEMENT]
+	if len(parts) < 4 || len(parts) > 5 {
+		return "", ""
+	}
+
+	strikePrice := parts[2]
+	optionTypeCode := parts[3]
+
+	var optionType string
+	switch optionTypeCode {
+	case "C":
+		optionType = "Call"
+	case "P":
+		optionType = "Put"
+	default:
+		optionType = ""
+	}
+
+	return strikePrice, optionType
 }
 
 // updateSymbolCache fetches data from Bybit and updates the cache.
