@@ -19,6 +19,7 @@ import (
 // Constants for the Bybit API and server configuration
 const (
 	bybitAPIEndpoint      = "https://api.bybit.com/v5/market/instruments-info"
+	binanceAPIEndpoint    = "https://fapi.binance.com/fapi/v1/exchangeInfo"
 	requestTimeout        = 10 * time.Second
 	updateInterval        = 2 * time.Minute
 	optionsUpdateInterval = 30 * time.Second
@@ -26,13 +27,28 @@ const (
 	logsDir               = "./logs"
 	logRetentionDays      = 7
 
-	// Options expiry window: 8-72 hours for optimal liquidity and reaction time
-	minExpiryHours = 8
+	// Options expiry window: 24-72 hours for optimal liquidity and reaction time
+	minExpiryHours = 24
 	maxExpiryHours = 72
 )
 
 // Supported base coins for options trading on Bybit
 var optionBaseCoins = []string{"BTC", "ETH", "SOL", "XRP", "DOGE", "MNT"}
+
+// BinanceExchangeInfo defines the structure for Binance API response.
+type BinanceExchangeInfo struct {
+	Symbols []BinanceSymbol `json:"symbols"`
+}
+
+// BinanceSymbol represents a symbol from Binance.
+type BinanceSymbol struct {
+	Symbol         string `json:"symbol"`
+	Status         string `json:"status"`
+	BaseAsset      string `json:"baseAsset"`
+	QuoteAsset     string `json:"quoteAsset"`
+	ContractType   string `json:"contractType"`
+	ContractStatus string `json:"contractStatus"`
+}
 
 // BybitResponse defines the structure for the top-level API response.
 type BybitResponse struct {
@@ -78,6 +94,23 @@ type SymbolResponse struct {
 	Symbols   []SymbolInfo `json:"symbols"`
 }
 
+// IntersectionSymbol represents a symbol that exists on both exchanges.
+type IntersectionSymbol struct {
+	Symbol    string `json:"symbol"`
+	BaseCoin  string `json:"baseCoin"`
+	OnBinance bool   `json:"onBinance"`
+	OnBybit   bool   `json:"onBybit"`
+}
+
+// IntersectionResponse is the JSON response for intersection endpoint.
+type IntersectionResponse struct {
+	Timestamp    string               `json:"timestamp"`
+	Count        int                  `json:"count"`
+	BinanceCount int                  `json:"binanceCount"`
+	BybitCount   int                  `json:"bybitCount"`
+	Symbols      []IntersectionSymbol `json:"symbols"`
+}
+
 // SymbolCache holds the cached symbol data with thread-safe access.
 type SymbolCache struct {
 	mu          sync.RWMutex
@@ -95,13 +128,23 @@ type OptionsCache struct {
 	lastUpdate    time.Time
 }
 
+// IntersectionCache holds the cached intersection data with thread-safe access.
+type IntersectionCache struct {
+	mu             sync.RWMutex
+	commonSymbols  []IntersectionSymbol
+	binanceSymbols []string
+	bybitSymbols   []string
+	lastUpdate     time.Time
+}
+
 var (
-	cache        = &SymbolCache{}
-	optionsCache = &OptionsCache{optionsByBase: make(map[string][]SymbolInfo)}
-	logger       *slog.Logger
-	logFile      *os.File
-	logCloser    = make(chan struct{})
-	logCloseOnce sync.Once
+	cache             = &SymbolCache{}
+	optionsCache      = &OptionsCache{optionsByBase: make(map[string][]SymbolInfo)}
+	intersectionCache = &IntersectionCache{}
+	logger            *slog.Logger
+	logFile           *os.File
+	logCloser         = make(chan struct{})
+	logCloseOnce      sync.Once
 )
 
 // fetchSymbols retrieves all tradable symbols for a given market category.
@@ -237,7 +280,7 @@ func fetchOptions(ctx context.Context, baseCoin string) ([]SymbolInfo, error) {
 			}
 			deliveryTimeMs := time.UnixMilli(expiryMs)
 
-			// Filter by expiry window (8-72 hours)
+			// Filter by expiry window (24-72 hours)
 			if deliveryTimeMs.Before(minExpiry) || deliveryTimeMs.After(maxExpiry) {
 				continue
 			}
@@ -278,6 +321,153 @@ func fetchOptions(ctx context.Context, baseCoin string) ([]SymbolInfo, error) {
 	}
 
 	return allOptions, nil
+}
+
+// fetchBinanceFutures retrieves USDT-M perpetual futures from Binance.
+func fetchBinanceFutures(ctx context.Context) ([]string, error) {
+	client := &http.Client{
+		Timeout: requestTimeout,
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", binanceAPIEndpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("creating Binance request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetching Binance futures: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Binance API returned status %s", resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading Binance response: %w", err)
+	}
+
+	var exchangeInfo BinanceExchangeInfo
+	if err := json.Unmarshal(body, &exchangeInfo); err != nil {
+		return nil, fmt.Errorf("decoding Binance JSON: %w", err)
+	}
+
+	var perpetuals []string
+	for _, symbol := range exchangeInfo.Symbols {
+
+		// Filter: PERPETUAL contracts with TRADING status and USDT quote
+		if symbol.ContractType == "PERPETUAL" &&
+			symbol.Status == "TRADING" &&
+			symbol.QuoteAsset == "USDT" {
+			perpetuals = append(perpetuals, symbol.Symbol)
+		}
+	}
+
+	return perpetuals, nil
+}
+
+// fetchBybitFutures retrieves USDT perpetual futures from Bybit.
+func fetchBybitFutures(ctx context.Context) ([]string, error) {
+	futuresSymbols, err := fetchSymbols(ctx, "linear")
+	if err != nil {
+		return nil, err
+	}
+
+	var usdtPerpetuals []string
+	for _, symbol := range futuresSymbols {
+		// Only USDT-settled perpetuals
+		if symbol.SettleCoin == "USDT" {
+			usdtPerpetuals = append(usdtPerpetuals, symbol.Symbol)
+		}
+	}
+
+	return usdtPerpetuals, nil
+}
+
+// updateIntersectionCache fetches data from both exchanges and finds common symbols.
+func updateIntersectionCache(ctx context.Context) error {
+	logger.Info("Starting intersection cache update")
+
+	// Fetch from both exchanges
+	binanceSymbols, err := fetchBinanceFutures(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching Binance futures: %w", err)
+	}
+	logger.Info("Fetched Binance USDT perpetuals", "count", len(binanceSymbols))
+
+	bybitSymbols, err := fetchBybitFutures(ctx)
+	if err != nil {
+		return fmt.Errorf("fetching Bybit futures: %w", err)
+	}
+	logger.Info("Fetched Bybit USDT perpetuals", "count", len(bybitSymbols))
+
+	// Find intersection
+	commonSymbols := findIntersection(binanceSymbols, bybitSymbols)
+
+	// Update cache
+	intersectionCache.mu.Lock()
+	intersectionCache.commonSymbols = commonSymbols
+	intersectionCache.binanceSymbols = binanceSymbols
+	intersectionCache.bybitSymbols = bybitSymbols
+	intersectionCache.lastUpdate = time.Now()
+	intersectionCache.mu.Unlock()
+
+	logger.Info("Intersection cache updated",
+		"common", len(commonSymbols),
+		"binance", len(binanceSymbols),
+		"bybit", len(bybitSymbols))
+
+	return nil
+}
+
+// findIntersection finds symbols that exist on both exchanges.
+func findIntersection(binanceSymbols, bybitSymbols []string) []IntersectionSymbol {
+	// Create maps for O(1) lookup
+	binanceMap := make(map[string]bool)
+	for _, symbol := range binanceSymbols {
+		binanceMap[symbol] = true
+	}
+
+	bybitMap := make(map[string]bool)
+	for _, symbol := range bybitSymbols {
+		bybitMap[symbol] = true
+	}
+
+	// Find common symbols
+	commonMap := make(map[string]bool)
+	for symbol := range binanceMap {
+		if bybitMap[symbol] {
+			commonMap[symbol] = true
+		}
+	}
+
+	// Convert to slice and extract base coin
+	var result []IntersectionSymbol
+	for symbol := range commonMap {
+		// Extract base coin (remove USDT suffix)
+		baseCoin := symbol
+		if len(symbol) > 4 && symbol[len(symbol)-4:] == "USDT" {
+			baseCoin = symbol[:len(symbol)-4]
+		}
+
+		result = append(result, IntersectionSymbol{
+			Symbol:    symbol,
+			BaseCoin:  baseCoin,
+			OnBinance: true,
+			OnBybit:   true,
+		})
+	}
+
+	// Sort by symbol name
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Symbol < result[j].Symbol
+	})
+
+	return result
 }
 
 // parseOptionSymbol extracts strike price and option type from option symbol.
@@ -463,6 +653,29 @@ func symbolUpdateWorker(ctx context.Context) {
 	}
 }
 
+// intersectionUpdateWorker runs in the background and updates intersection cache.
+func intersectionUpdateWorker(ctx context.Context) {
+	// Initial update
+	if err := updateIntersectionCache(ctx); err != nil {
+		logger.Error("Initial intersection cache update failed", "error", err)
+	}
+
+	ticker := time.NewTicker(updateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("Intersection update worker stopping")
+			return
+		case <-ticker.C:
+			if err := updateIntersectionCache(ctx); err != nil {
+				logger.Error("Intersection cache update failed", "error", err)
+			}
+		}
+	}
+}
+
 // optionsUpdateWorker runs in the background and updates options cache more frequently.
 func optionsUpdateWorker(ctx context.Context) {
 	// Initial update
@@ -554,6 +767,61 @@ func handleSymbols(symbolType string) http.HandlerFunc {
 	}
 }
 
+// handleIntersection is the HTTP handler for intersection endpoint.
+func handleIntersection(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	// Only allow GET requests
+	if r.Method != http.MethodGet {
+		logger.Warn("Method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"remote", r.RemoteAddr)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read from intersection cache
+	intersectionCache.mu.RLock()
+	commonSymbols := intersectionCache.commonSymbols
+	binanceCount := len(intersectionCache.binanceSymbols)
+	bybitCount := len(intersectionCache.bybitSymbols)
+	timestamp := intersectionCache.lastUpdate
+	intersectionCache.mu.RUnlock()
+
+	// Check if cache is empty
+	if timestamp.IsZero() {
+		logger.Warn("Intersection cache not initialized yet",
+			"path", r.URL.Path,
+			"remote", r.RemoteAddr)
+		http.Error(w, "Data not available yet, please retry in a moment", http.StatusServiceUnavailable)
+		return
+	}
+
+	response := IntersectionResponse{
+		Timestamp:    timestamp.Format(time.RFC3339),
+		Count:        len(commonSymbols),
+		BinanceCount: binanceCount,
+		BybitCount:   bybitCount,
+		Symbols:      commonSymbols,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logger.Error("Failed to encode response",
+			"error", err,
+			"path", r.URL.Path,
+			"remote", r.RemoteAddr)
+		return
+	}
+
+	logger.Info("Intersection request served",
+		"path", r.URL.Path,
+		"count", len(commonSymbols),
+		"duration", time.Since(startTime),
+		"remote", r.RemoteAddr)
+}
+
 // handleOptions is the HTTP handler for options endpoints.
 func handleOptions(baseCoin string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -626,10 +894,15 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	optionsCount := len(optionsCache.allOptions)
 	optionsCache.mu.RUnlock()
 
+	intersectionCache.mu.RLock()
+	intersectionLastUpdate := intersectionCache.lastUpdate
+	intersectionCount := len(intersectionCache.commonSymbols)
+	intersectionCache.mu.RUnlock()
+
 	status := "healthy"
 	statusCode := http.StatusOK
 
-	if lastUpdate.IsZero() || optionsLastUpdate.IsZero() {
+	if lastUpdate.IsZero() || optionsLastUpdate.IsZero() || intersectionLastUpdate.IsZero() {
 		status = "initializing"
 		statusCode = http.StatusServiceUnavailable
 	} else if time.Since(lastUpdate) > updateInterval*2 {
@@ -638,19 +911,25 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	} else if time.Since(optionsLastUpdate) > optionsUpdateInterval*2 {
 		status = "options_stale"
 		statusCode = http.StatusServiceUnavailable
+	} else if time.Since(intersectionLastUpdate) > updateInterval*2 {
+		status = "intersection_stale"
+		statusCode = http.StatusServiceUnavailable
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 
 	health := map[string]interface{}{
-		"status":            status,
-		"lastUpdate":        lastUpdate.Format(time.RFC3339),
-		"symbolCount":       symbolCount,
-		"cacheAge":          time.Since(lastUpdate).String(),
-		"optionsLastUpdate": optionsLastUpdate.Format(time.RFC3339),
-		"optionsCount":      optionsCount,
-		"optionsCacheAge":   time.Since(optionsLastUpdate).String(),
+		"status":                 status,
+		"lastUpdate":             lastUpdate.Format(time.RFC3339),
+		"symbolCount":            symbolCount,
+		"cacheAge":               time.Since(lastUpdate).String(),
+		"optionsLastUpdate":      optionsLastUpdate.Format(time.RFC3339),
+		"optionsCount":           optionsCount,
+		"optionsCacheAge":        time.Since(optionsLastUpdate).String(),
+		"intersectionLastUpdate": intersectionLastUpdate.Format(time.RFC3339),
+		"intersectionCount":      intersectionCount,
+		"intersectionCacheAge":   time.Since(intersectionLastUpdate).String(),
 	}
 
 	json.NewEncoder(w).Encode(health)
@@ -827,6 +1106,9 @@ func main() {
 	// Start background worker to update options (faster interval)
 	go optionsUpdateWorker(ctx)
 
+	// Start background worker to update intersection
+	go intersectionUpdateWorker(ctx)
+
 	// Set up HTTP routes
 	mux := http.NewServeMux()
 
@@ -843,6 +1125,9 @@ func main() {
 	mux.HandleFunc("/options/xrp", handleOptions("XRP"))
 	mux.HandleFunc("/options/doge", handleOptions("DOGE"))
 	mux.HandleFunc("/options/mnt", handleOptions("MNT"))
+
+	// Intersection endpoint
+	mux.HandleFunc("/intersection/futures", handleIntersection)
 
 	// Health check
 	mux.HandleFunc("/health", healthHandler)
