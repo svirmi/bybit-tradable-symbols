@@ -2,6 +2,10 @@
 
 Service to track current tradable ByBit symbols for spot and futures
 
+```
+http://localhost:8080/intersection/futures
+```
+
 ##### Can be splitted into:
 
 main.go // Server setup, routes, main()
