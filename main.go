@@ -82,6 +82,7 @@ type SymbolInfo struct {
 	BaseCoin    string `json:"baseCoin"`
 	QuoteCoin   string `json:"quoteCoin"`
 	SettleCoin  string `json:"settleCoin"`
+	Status      string `json:"status"`
 	ExpiryDate  string `json:"expiryDate,omitempty"`  // ISO 8601 format, only for options
 	StrikePrice string `json:"strikePrice,omitempty"` // Strike price, only for options
 	OptionType  string `json:"optionType,omitempty"`  // "Call" or "Put", only for options
@@ -147,8 +148,8 @@ var (
 	logCloseOnce      sync.Once
 )
 
-// fetchSymbols retrieves all tradable symbols for a given market category.
-func fetchSymbols(ctx context.Context, category string) ([]SymbolInfo, error) {
+// fetchSymbols retrieves all tradable symbols for a given market category from ByBit.
+func fetchByBit(ctx context.Context, category string) ([]SymbolInfo, error) {
 	var allSymbols []SymbolInfo
 	cursor := ""
 	client := &http.Client{
@@ -205,6 +206,7 @@ func fetchSymbols(ctx context.Context, category string) ([]SymbolInfo, error) {
 				BaseCoin:    instrument.BaseCoin,
 				QuoteCoin:   instrument.QuoteCoin,
 				SettleCoin:  instrument.SettleCoin,
+				Status:      instrument.Status,
 			})
 		}
 
@@ -360,9 +362,7 @@ func fetchBinanceFutures(ctx context.Context) ([]string, error) {
 	for _, symbol := range exchangeInfo.Symbols {
 
 		// Filter: PERPETUAL contracts with TRADING status and USDT quote
-		if symbol.ContractType == "PERPETUAL" &&
-			symbol.Status == "TRADING" &&
-			symbol.QuoteAsset == "USDT" {
+		if symbol.Status == "TRADING" && symbol.QuoteAsset == "USDT" && symbol.ContractType == "PERPETUAL" {
 			perpetuals = append(perpetuals, symbol.Symbol)
 		}
 	}
@@ -372,7 +372,7 @@ func fetchBinanceFutures(ctx context.Context) ([]string, error) {
 
 // fetchBybitFutures retrieves USDT perpetual futures from Bybit.
 func fetchBybitFutures(ctx context.Context) ([]string, error) {
-	futuresSymbols, err := fetchSymbols(ctx, "linear")
+	futuresSymbols, err := fetchByBit(ctx, "linear")
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +380,7 @@ func fetchBybitFutures(ctx context.Context) ([]string, error) {
 	var usdtPerpetuals []string
 	for _, symbol := range futuresSymbols {
 		// Only USDT-settled perpetuals
-		if symbol.SettleCoin == "USDT" {
+		if symbol.Status == "Trading" && symbol.SettleCoin == "USDT" {
 			usdtPerpetuals = append(usdtPerpetuals, symbol.Symbol)
 		}
 	}
@@ -517,13 +517,13 @@ func parseOptionSymbol(symbol string) (string, string) {
 func updateSymbolCache(ctx context.Context) error {
 	logger.Info("Starting symbol cache update")
 
-	spotSymbols, err := fetchSymbols(ctx, "spot")
+	spotSymbols, err := fetchByBit(ctx, "spot")
 	if err != nil {
 		return fmt.Errorf("fetching spot symbols: %w", err)
 	}
 	logger.Info("Fetched spot symbols", "count", len(spotSymbols))
 
-	futuresSymbols, err := fetchSymbols(ctx, "linear")
+	futuresSymbols, err := fetchByBit(ctx, "linear")
 	if err != nil {
 		return fmt.Errorf("fetching futures symbols: %w", err)
 	}
