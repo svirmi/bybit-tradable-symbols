@@ -527,7 +527,7 @@ func updateSymbolCache(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("fetching futures symbols: %w", err)
 	}
-	logger.Info("Fetched futures symbols", "count", len(futuresSymbols))
+	logger.Info("Fetched ByBit futures symbols", "count", len(futuresSymbols))
 
 	// Match symbols
 	allCommon, usdtQuoted, usdcQuoted := matchSymbols(spotSymbols, futuresSymbols)
