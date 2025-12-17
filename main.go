@@ -1085,6 +1085,70 @@ func cleanupOldLogs() error {
 	return nil
 }
 
+// fetchBybitUSDCFutures retrieves USDC perpetual futures from Bybit.
+func fetchBybitUSDCFutures(ctx context.Context) ([]SymbolInfo, error) {
+	futuresSymbols, err := fetchSymbols(ctx, "linear")
+	if err != nil {
+		return nil, err
+	}
+
+	var usdcPerpetuals []SymbolInfo
+	for _, symbol := range futuresSymbols {
+		// Only USDC-settled perpetuals
+		if symbol.SettleCoin == "USDC" {
+			usdcPerpetuals = append(usdcPerpetuals, symbol)
+		}
+	}
+
+	return usdcPerpetuals, nil
+}
+
+// handleBybitUSDC is the HTTP handler for Bybit USDC symbols endpoint.
+func handleBybitUSDC(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	// Only allow GET requests
+	if r.Method != http.MethodGet {
+		logger.Warn("Method not allowed",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"remote", r.RemoteAddr)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Fetch Bybit USDC symbols
+	usdcSymbols, err := fetchBybitUSDCFutures(r.Context())
+	if err != nil {
+		logger.Error("Failed to fetch Bybit USDC symbols", "error", err)
+		http.Error(w, "Failed to fetch Bybit USDC symbols", http.StatusInternalServerError)
+		return
+	}
+
+	timestamp := time.Now()
+
+	response := SymbolResponse{
+		Timestamp: timestamp.Format(time.RFC3339),
+		Count:     len(usdcSymbols),
+		Symbols:   usdcSymbols,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		logger.Error("Failed to encode response",
+			"error", err,
+			"path", r.URL.Path,
+			"remote", r.RemoteAddr)
+		return
+	}
+
+	logger.Info("Bybit USDC request served",
+		"path", r.URL.Path,
+		"count", len(usdcSymbols),
+		"duration", time.Since(startTime),
+		"remote", r.RemoteAddr)
+}
+
 func main() {
 	// Initialize logging to both console and file
 	cleanupLogs, err := setupLogging()
@@ -1116,6 +1180,7 @@ func main() {
 	mux.HandleFunc("/symbols/all", handleSymbols("all"))
 	mux.HandleFunc("/symbols/usdt", handleSymbols("usdt"))
 	mux.HandleFunc("/symbols/usdc", handleSymbols("usdc"))
+	mux.HandleFunc("/symbols/bybit-usdc", handleBybitUSDC)
 
 	// Options endpoints
 	mux.HandleFunc("/options/all", handleOptions("all"))
