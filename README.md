@@ -3,7 +3,7 @@
 Service to track current tradable ByBit symbols for spot and futures
 
 ```
-http://localhost:8080/intersection/futures
+http://localhost:8080/symbols/bybit-usdc-usdt
 ```
 
 ##### Can be splitted into:
